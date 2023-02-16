@@ -22,13 +22,17 @@ const CRUD = () => {
   const [name, setName] = useState("");
   const [age, setAge] = useState("");
   const [isActive, setIsAcive] = useState(0);
+  const [imageSrc, setImageSrc] = useState(defaultImage);
+  const [imageFile, setImageFile] = useState(null);
+  const [imageName, setImageName] = useState("");
 
   const [editID, setEditID] = useState("");
   const [editName, setEditName] = useState("");
   const [editAge, setEditAge] = useState("");
   const [editIsActive, setEditIsActive] = useState(0);
-  const [img, settImage] = useState(defaultImage);
-  const [imgFile, setImageFile] = useState(null);
+  const [editImageSrc, setEditImageSrc] = useState();
+  const [editImageFile, setEditImageFile] = useState("");
+  const [editImageName, setEditImageName] = useState("");
 
   useEffect(() => {
     getData();
@@ -38,6 +42,14 @@ const CRUD = () => {
     axios
       .get(`https://localhost:7262/api/Employee/${id}`)
       .then((result) => {
+        for (var i = 0; i < data.length; i++) {
+          if (id === data[i].id) {
+            result.data.imageSrc = data[i].imageSrc;
+          }
+          console.log(data[i].name);
+        }
+        console.log(result.data.imageSrc);
+        setEditImageSrc(result.data.imageSrc);
         setEditName(result.data.name);
         setEditAge(result.data.age);
         setEditIsActive(result.data.isActive);
@@ -61,20 +73,30 @@ const CRUD = () => {
         })
         .catch((err) => {
           toast.error(err);
+          console.log(err);
         });
     }
   };
 
   const handleUpdate = () => {
     const url = `https://localhost:7262/api/Employee/${editID}`;
-    const data = {
-      id: editID,
-      name: editName,
-      age: editAge,
-      isActive: editIsActive,
-    };
+    const formData = new FormData();
+    formData.append("imageFile", editImageFile);
+    formData.append("id", editID);
+    formData.append("name", editName);
+    formData.append("age", editAge);
+    formData.append("isActive", editIsActive);
+    formData.append("imageName", editImageName);
+
+    console.log("edit", editImageFile);
+    console.log("edit", editID);
+    console.log("edit", editName);
+    console.log("edit", editAge);
+    console.log("edit", editIsActive);
+    console.log("edit", editImageName);
+
     axios
-      .put(url, data)
+      .put(url, formData)
       .then((result) => {
         handleClose();
         getData();
@@ -82,34 +104,41 @@ const CRUD = () => {
       })
       .catch((er) => {
         toast.error(er);
+        console.log(er);
       });
   };
 
   const handleSave = () => {
-    const formData = new FormData();
-
     const url = "https://localhost:7262/api/Employee";
-    const data = {
-      name: name,
-      age: age,
-      isActive: isActive,
-    };
-    formData.append("data", new Blob([JSON.stringify(data)]), {
-      type: "application/json",
-    });
-    formData.append("file", imgFile);
-    console.log("data", data);
+
+    const formData = new FormData();
+    formData.append("imageFile", imageFile);
+
+    formData.append("name", name);
+    formData.append("age", age);
+    formData.append("isActive", isActive);
+    formData.append("imageName", imageName);
+
+    console.log("formData", formData);
+    console.log("imageName.name", imageFile.name);
+    console.log("imageName", imageName);
+
     axios
-      .post(url, {formData,data})
+      .post(url, formData)
       .then((result) => {
         console.log("into then", result);
+        console.log("formData", formData.data);
         getData();
         clear();
         toast.success("Employee has been added");
       })
       .catch((er) => {
         toast.error(er);
-        console.log("failSave", er);
+        if (er.response) {
+          console.log("response", er.response);
+        } else if (er.request) {
+          console.log("request", er.request);
+        } else console.log("failSave", er);
       });
   };
 
@@ -136,6 +165,7 @@ const CRUD = () => {
     setEditAge("");
     setEditIsActive(0);
     setEditID("");
+    setImageFile("");
   };
 
   const getData = () => {
@@ -143,6 +173,7 @@ const CRUD = () => {
       .get("https://localhost:7262/api/Employee")
       .then((result) => {
         setData(result.data);
+        console.log("get data", result.data);
       })
       .catch((er) => {
         console.log(er);
@@ -157,14 +188,34 @@ const CRUD = () => {
       console.log("sssssss2");
       reader.onload = (x) => {
         setImageFile(imageFile);
-        settImage(x.target.value);
+        setImageSrc(x.target.result);
       };
       reader.readAsDataURL(imageFile);
 
-      console.log("sssssss3", imageFile);
+      console.log("sssssss3", imageFile.name);
     } else {
       setImageFile(null);
-      settImage(defaultImage);
+      setImageSrc(defaultImage);
+      console.log("failShow");
+    }
+  };
+
+  const showPreviewUpdate = (e) => {
+    console.log("ssssupdate");
+    if (e.target.files && e.target.files[0]) {
+      let editImageFile = e.target.files[0];
+      const reader = new FileReader();
+      console.log("ssssupdate2");
+      reader.onload = (x) => {
+        setEditImageFile(editImageFile);
+        setEditImageSrc(x.target.result);
+      };
+      reader.readAsDataURL(editImageFile);
+
+      console.log("sssssupdate3", editImageFile.name);
+    } else {
+      setEditImageFile(null);
+      setEditImageSrc(defaultImage);
       console.log("failShow");
     }
   };
@@ -199,14 +250,10 @@ const CRUD = () => {
               value={isActive}
             />
             <label>IsActive</label>
-            <input
-              type="file"
-              accept="image.png, image.jpeg"
-              onChange={showPreview}
-            />
+            <input type="file" accept="image/*" onChange={showPreview} />
           </Col>
           <Col>
-            <img src={img} className="card-image" />
+            <img src={imageSrc} className="card-image" />
           </Col>
           <Col>
             <button className="btn btn-primary" onClick={() => handleSave()}>
@@ -234,6 +281,13 @@ const CRUD = () => {
                     <td>{item.name}</td>
                     <td>{item.age}</td>
                     <td>{item.isActive}</td>
+                    <td>
+                      <img
+                        src={`${item.imageSrc}`}
+                        className="card-image"
+                        alt=""
+                      />
+                    </td>
                     <td colSpan={2}>
                       <button
                         className="btn btn-primary"
@@ -287,6 +341,14 @@ const CRUD = () => {
                 value={editIsActive}
               />
               <label>IsActive</label>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={showPreviewUpdate}
+              />
+            </Col>
+            <Col>
+              <img src={editImageSrc} className="card-image" />
             </Col>
           </Row>
         </Modal.Body>
